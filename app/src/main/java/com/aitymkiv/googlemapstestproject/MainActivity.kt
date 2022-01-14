@@ -36,7 +36,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     private val KEY_CAMERA_POSITION = "camera_position"
     private val KEY_LOCATION = "location"
     private val COLOR_RED_ARGB = -0x1550000
-    private val COLOR_SOME_ARGB = -0x1555500
 
     private var map: GoogleMap? = null
     private var lastKnownLocation: Location? = null
@@ -67,7 +66,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         Places.initialize(applicationContext, getString(R.string.maps_api_key))
         placesClient = Places.createClient(this)
         button = findViewById(R.id.updateButton)
-        button.setOnClickListener(object: View.OnClickListener{
+        button.setOnClickListener(object : View.OnClickListener {
             override fun onClick(p0: View?) {
                 updateGoogleMap()
                 Toast.makeText(this@MainActivity, "Данные обновились", Toast.LENGTH_LONG).show()
@@ -78,19 +77,13 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         mapFragment?.getMapAsync(this)
     }
 
-
-
-    /**
-     * Styles the polyline, based on type.
-     * @param polyline The polyline object that needs styling.
-     */
     private fun stylePolyline(polyline: Polyline) {
 
         polyline.color = COLOR_RED_ARGB
     }
 
     private fun updateGoogleMap() {
-        var polyline = map?.let{ map1 ->
+        var polyline = map?.let { map1 ->
             map1.clear()
             map1.addPolyline(
                 PolylineOptions().addAll(
@@ -122,12 +115,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
             }
         }
 
-        val circle = map?.addCircle(
-            CircleOptions().center(LatLng(-33.8, 151.2))
-                .radius(10000.0)
-                .strokeColor(Color.RED)
-                .fillColor(Color.BLUE)
-        )
 
     }
 
@@ -183,7 +170,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                     Log.e("TAG", t.toString())
                     Toast.makeText(
                         this@MainActivity,
-                        "Данные не получены: " + t.toString(),
+                        "Не удалось получить данные: " + t.toString(),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -268,51 +255,12 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         }
     }
 
-
     override fun onSaveInstanceState(outState: Bundle) {
         map?.let { map ->
             outState.putParcelable(KEY_CAMERA_POSITION, map.cameraPosition)
             outState.putParcelable(KEY_LOCATION, lastKnownLocation)
         }
         super.onSaveInstanceState(outState)
-    }
-
-
-    private fun openPlacesDialog() {
-        val listener =
-            DialogInterface.OnClickListener { dialog, which ->
-                val markerLatLng = likelyPlaceLatLngs[which]
-                var markerSnippet = likelyPlaceAddresses[which]
-                if (likelyPlaceAttributions[which] != null) {
-                    markerSnippet = """
-                $markerSnippet
-                ${likelyPlaceAttributions[which]}
-                """.trimIndent()
-                }
-
-                if (markerLatLng == null) {
-                    return@OnClickListener
-                }
-
-                map?.addMarker(
-                    MarkerOptions()
-                        .title(likelyPlaceNames[which])
-                        .position(markerLatLng)
-                        .snippet(markerSnippet)
-                )
-
-                map?.moveCamera(
-                    CameraUpdateFactory.newLatLngZoom(
-                        markerLatLng,
-                        DEFAULT_ZOOM.toFloat()
-                    )
-                )
-            }
-
-        AlertDialog.Builder(this)
-            .setTitle(R.string.pick_place)
-            .setItems(likelyPlaceNames, listener)
-            .show()
     }
 
     override fun onRequestPermissionsResult(
@@ -359,10 +307,5 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         private val TAG = MainActivity::class.java.simpleName
         private const val DEFAULT_ZOOM = 15
         private const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1
-
-        private const val KEY_CAMERA_POSITION = "camera_position"
-        private const val KEY_LOCATION = "location"
-
-        private const val M_MAX_ENTRIES = 5
     }
 }
