@@ -9,11 +9,12 @@ import android.location.Location
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.Button
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.Transformations
 import com.aitymkiv.googlemapstestproject.model.ApiClient
 import com.aitymkiv.googlemapstestproject.model.Coordinate
 import com.aitymkiv.googlemapstestproject.model.MainJsonObject
@@ -25,8 +26,6 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.libraries.places.api.Places
-import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.api.net.FindCurrentPlaceRequest
 import com.google.android.libraries.places.api.net.PlacesClient
 import retrofit2.Call
 import retrofit2.Callback
@@ -36,6 +35,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     GoogleMap.OnPolygonClickListener {
     private val KEY_CAMERA_POSITION = "camera_position"
     private val KEY_LOCATION = "location"
+    private val COLOR_RED_ARGB = -0x1550000
+    private val COLOR_SOME_ARGB = -0x1555500
+
     private var map: GoogleMap? = null
     private var lastKnownLocation: Location? = null
     private var cameraPosition: CameraPosition? = null
@@ -53,6 +55,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     private var linesCoordinate: ArrayList<Coordinate> = arrayListOf()
     private var pointsCoordinate: ArrayList<Coordinate> = arrayListOf()
 
+    private lateinit var button: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,50 +66,32 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         setContentView(R.layout.activity_main)
         Places.initialize(applicationContext, getString(R.string.maps_api_key))
         placesClient = Places.createClient(this)
+        button = findViewById(R.id.updateButton)
+        button.setOnClickListener(object: View.OnClickListener{
+            override fun onClick(p0: View?) {
+                updateGoogleMap()
+                Toast.makeText(this@MainActivity, "Данные обновились", Toast.LENGTH_LONG).show()
+            }
+        })
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
     }
 
+
+
+    /**
+     * Styles the polyline, based on type.
+     * @param polyline The polyline object that needs styling.
+     */
+    private fun stylePolyline(polyline: Polyline) {
+
+        polyline.color = COLOR_RED_ARGB
+    }
+
     private fun updateGoogleMap() {
-        // не понимаю, стоппппппппппппппппп
-
-        Log.e("dede", "e" + linesCoordinate[3].lat + "w" + linesCoordinate[3].lon)
-
-//        map?.addPolyline(PolylineOptions() // вопрос, а latitude может быть положительной? ага
-//
-//            .clickable(true)
-//            .add(
-//                LatLng(linesCoordinate.get(0).lat!!, linesCoordinate.get(0).lon!!),
-//                LatLng(linesCoordinate.get(1).lat!!, linesCoordinate.get(1).lon!!),
-//                LatLng(linesCoordinate.get(2).lat!!, linesCoordinate.get(2).lon!!),
-//                LatLng(linesCoordinate.get(3).lat!!, linesCoordinate.get(3).lon!!),
-//                LatLng(linesCoordinate.get(4).lat!!, linesCoordinate.get(4).lon!!),
-//                LatLng(linesCoordinate.get(5).lat!!, linesCoordinate.get(5).lon!!),
-//                LatLng(linesCoordinate.get(6).lat!!, linesCoordinate.get(6).lon!!),
-//                LatLng(linesCoordinate.get(7).lat!!, linesCoordinate.get(7).lon!!),
-//                LatLng(linesCoordinate.get(8).lat!!, linesCoordinate.get(8).lon!!),
-//                LatLng(-34.747, 145.592),
-//                LatLng(-34.364, 147.891),
-//                LatLng(-33.501, 150.217),
-//                LatLng(-32.306, 149.248),
-//                LatLng(-32.491, 147.309)))  // работает ничего не понимаю. Работает
-
-//        val polyline1 = map?.addPolyline(PolylineOptions()
-//            .clickable(true)
-//            .add(
-//                LatLng(linesCoordinate.get(0).lat!!, linesCoordinate.get(0).lon!!),
-//                LatLng(linesCoordinate.get(1).lat!!, linesCoordinate.get(1).lon!!),
-//                LatLng(linesCoordinate.get(2).lat!!, linesCoordinate.get(2).lon!!),
-//                LatLng(linesCoordinate.get(3).lat!!, linesCoordinate.get(3).lon!!),
-//                LatLng(linesCoordinate.get(4).lat!!, linesCoordinate.get(4).lon!!),
-//                LatLng(linesCoordinate.get(5).lat!!, linesCoordinate.get(5).lon!!),
-//                LatLng(linesCoordinate.get(6).lat!!, linesCoordinate.get(6).lon!!),
-//                LatLng(linesCoordinate.get(7).lat!!, linesCoordinate.get(7).lon!!),
-//                LatLng(linesCoordinate.get(8).lat!!, linesCoordinate.get(8).lon!!))) // а это - нет
-
-        map?.let{ map1 ->
-            map1.clear() // эмм polyline оно же е используетс. Не, карта прорисовывается в map1.addPolyling дак скопируй снизу( да нет я удалил оттуда
+        var polyline = map?.let{ map1 ->
+            map1.clear()
             map1.addPolyline(
                 PolylineOptions().addAll(
                     linesCoordinate.map { item ->
@@ -115,10 +100,35 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                                 LatLng(lat, lon)
                             }
                         }
-                    }// уаххахаха я нашел ошибку, создавал лист при кажой итерации) фак ничего, а бля точностопяЯ
+                    }
                 )
             )
         }
+        if (polyline != null) {
+            stylePolyline(polyline)
+        }
+
+        pointsCoordinate.forEach {
+            it.lat?.let { it1 -> it.lon?.let { it2 -> LatLng(it1, it2) } }?.let { it2 ->
+                CircleOptions()
+                    .center(it2)
+                    .radius(1.0)
+                    .strokeColor(Color.BLUE)
+                    .fillColor(Color.BLUE)
+            }?.let { it3 ->
+                map?.addCircle(
+                    it3
+                )
+            }
+        }
+
+        val circle = map?.addCircle(
+            CircleOptions().center(LatLng(-33.8, 151.2))
+                .radius(10000.0)
+                .strokeColor(Color.RED)
+                .fillColor(Color.BLUE)
+        )
+
     }
 
     private fun mapping() {
@@ -173,7 +183,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                     Log.e("TAG", t.toString())
                     Toast.makeText(
                         this@MainActivity,
-                        "Нет подключения к интернету ",
+                        "Данные не получены: " + t.toString(),
                         Toast.LENGTH_LONG
                     ).show()
                 }
@@ -222,12 +232,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
             CameraUpdateFactory
                 .newLatLngZoom(LatLng(-23.684, 133.903), 4f)
         )
-        val circle = googleMap.addCircle(
-            CircleOptions().center(LatLng(-33.8, 151.2))
-                .radius(10000.0)
-                .strokeColor(Color.RED)
-                .fillColor(Color.BLUE)
-        )
 
 
         getLocationPermission()
@@ -264,56 +268,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         }
     }
 
-//    @SuppressLint("MissingPermission")
-//    private fun showCurrentPlace() {
-//        if (map == null) {
-//            return
-//        }
-//        if (locationPermissionGranted) {
-//            val placeFields = listOf(Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
-//            val request = FindCurrentPlaceRequest.newInstance(placeFields)
-//            val placeResult = placesClient.findCurrentPlace(request)
-//            placeResult.addOnCompleteListener { task ->
-//                if (task.isSuccessful && task.result != null) {
-//                    val likelyPlaces = task.result
-//                    val count =
-//                        if (likelyPlaces != null && likelyPlaces.placeLikelihoods.size < M_MAX_ENTRIES) {
-//                            likelyPlaces.placeLikelihoods.size
-//                        } else {
-//                            M_MAX_ENTRIES
-//                        }
-//                    var i = 0
-//                    likelyPlaceNames = arrayOfNulls(count)
-//                    likelyPlaceAddresses = arrayOfNulls(count)
-//                    likelyPlaceAttributions = arrayOfNulls<List<*>?>(count)
-//                    likelyPlaceLatLngs = arrayOfNulls(count)
-//                    for (placeLikelihood in likelyPlaces?.placeLikelihoods ?: emptyList()) {
-//                        likelyPlaceNames[i] = placeLikelihood.place.name
-//                        likelyPlaceAddresses[i] = placeLikelihood.place.address
-//                        likelyPlaceAttributions[i] = placeLikelihood.place.attributions
-//                        likelyPlaceLatLngs[i] = placeLikelihood.place.latLng
-//                        i++
-//                        if (i > count - 1) {
-//                            break
-//                        }
-//                    }
-//
-//                    openPlacesDialog()
-//                } else {
-//                    Log.e(TAG, "Exception: %s", task.exception)
-//                }
-//            }
-//        } else {
-//            Log.i(TAG, "The user did not grant location permission.")
-//            map?.addMarker(
-//                MarkerOptions()
-//                    .title(getString(R.string.default_info_title))
-//                    .position(defaultLocation)
-//                    .snippet(getString(R.string.default_info_snippet))
-//            )
-//            getLocationPermission()
-//        }
-//    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         map?.let { map ->
