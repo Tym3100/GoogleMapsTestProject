@@ -45,10 +45,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     private var locationPermissionGranted = false
     private val defaultLocation = LatLng(-33.8523341, 151.2106085)
 
-    private var likelyPlaceNames: Array<String?> = arrayOfNulls(0)
-    private var likelyPlaceAddresses: Array<String?> = arrayOfNulls(0)
-    private var likelyPlaceAttributions: Array<List<*>?> = arrayOfNulls(0)
-    private var likelyPlaceLatLngs: Array<LatLng?> = arrayOfNulls(0)
     private var mainJsonObject: MainJsonObject? = null
 
     private var linesCoordinate: ArrayList<Coordinate> = arrayListOf()
