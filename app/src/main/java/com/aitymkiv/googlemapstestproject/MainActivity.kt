@@ -74,7 +74,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     }
 
     private fun stylePolyline(polyline: Polyline) {
-
         polyline.color = COLOR_RED_ARGB
     }
 
@@ -110,8 +109,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                 )
             }
         }
-
-
     }
 
     private fun mapping() {
