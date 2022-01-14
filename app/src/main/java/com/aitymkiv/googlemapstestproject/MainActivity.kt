@@ -13,7 +13,9 @@ import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Transformations
 import com.aitymkiv.googlemapstestproject.model.ApiClient
+import com.aitymkiv.googlemapstestproject.model.Coordinate
 import com.aitymkiv.googlemapstestproject.model.MainJsonObject
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -46,7 +48,10 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     private var likelyPlaceAddresses: Array<String?> = arrayOfNulls(0)
     private var likelyPlaceAttributions: Array<List<*>?> = arrayOfNulls(0)
     private var likelyPlaceLatLngs: Array<LatLng?> = arrayOfNulls(0)
-    private lateinit var mainJsonObject: MainJsonObject
+    private var mainJsonObject: MainJsonObject? = null
+
+    private var linesCoordinate: ArrayList<Coordinate> = arrayListOf()
+    private var pointsCoordinate: ArrayList<Coordinate> = arrayListOf()
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -61,7 +66,88 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
         val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
-        getData()
+    }
+
+    private fun updateGoogleMap() {
+        // не понимаю, стоппппппппппппппппп
+
+        Log.e("dede", "e" + linesCoordinate[3].lat + "w" + linesCoordinate[3].lon)
+
+//        map?.addPolyline(PolylineOptions() // вопрос, а latitude может быть положительной? ага
+//
+//            .clickable(true)
+//            .add(
+//                LatLng(linesCoordinate.get(0).lat!!, linesCoordinate.get(0).lon!!),
+//                LatLng(linesCoordinate.get(1).lat!!, linesCoordinate.get(1).lon!!),
+//                LatLng(linesCoordinate.get(2).lat!!, linesCoordinate.get(2).lon!!),
+//                LatLng(linesCoordinate.get(3).lat!!, linesCoordinate.get(3).lon!!),
+//                LatLng(linesCoordinate.get(4).lat!!, linesCoordinate.get(4).lon!!),
+//                LatLng(linesCoordinate.get(5).lat!!, linesCoordinate.get(5).lon!!),
+//                LatLng(linesCoordinate.get(6).lat!!, linesCoordinate.get(6).lon!!),
+//                LatLng(linesCoordinate.get(7).lat!!, linesCoordinate.get(7).lon!!),
+//                LatLng(linesCoordinate.get(8).lat!!, linesCoordinate.get(8).lon!!),
+//                LatLng(-34.747, 145.592),
+//                LatLng(-34.364, 147.891),
+//                LatLng(-33.501, 150.217),
+//                LatLng(-32.306, 149.248),
+//                LatLng(-32.491, 147.309)))  // работает ничего не понимаю. Работает
+
+//        val polyline1 = map?.addPolyline(PolylineOptions()
+//            .clickable(true)
+//            .add(
+//                LatLng(linesCoordinate.get(0).lat!!, linesCoordinate.get(0).lon!!),
+//                LatLng(linesCoordinate.get(1).lat!!, linesCoordinate.get(1).lon!!),
+//                LatLng(linesCoordinate.get(2).lat!!, linesCoordinate.get(2).lon!!),
+//                LatLng(linesCoordinate.get(3).lat!!, linesCoordinate.get(3).lon!!),
+//                LatLng(linesCoordinate.get(4).lat!!, linesCoordinate.get(4).lon!!),
+//                LatLng(linesCoordinate.get(5).lat!!, linesCoordinate.get(5).lon!!),
+//                LatLng(linesCoordinate.get(6).lat!!, linesCoordinate.get(6).lon!!),
+//                LatLng(linesCoordinate.get(7).lat!!, linesCoordinate.get(7).lon!!),
+//                LatLng(linesCoordinate.get(8).lat!!, linesCoordinate.get(8).lon!!))) // а это - нет
+
+        map?.let{ map1 ->
+            map1.clear() // эмм polyline оно же е используетс. Не, карта прорисовывается в map1.addPolyling дак скопируй снизу( да нет я удалил оттуда
+            map1.addPolyline(
+                PolylineOptions().addAll(
+                    linesCoordinate.map { item ->
+                        item.lat?.let { lat ->
+                            item.lon?.let { lon ->
+                                LatLng(lat, lon)
+                            }
+                        }
+                    }// уаххахаха я нашел ошибку, создавал лист при кажой итерации) фак ничего, а бля точностопяЯ
+                )
+            )
+        }
+    }
+
+    private fun mapping() {
+        if (!linesCoordinate.isNullOrEmpty()) {
+            linesCoordinate.clear()
+        }
+        val lines = mainJsonObject?.lines
+        val points = mainJsonObject?.points
+        lines?.forEach {
+
+            it.pointsGeometry?.coordinates?.forEach {
+                linesCoordinate.add(Coordinate(it.get(0), it.get(1), it.get(2)))
+            }
+        }
+        points?.forEach {
+            pointsCoordinate.add(
+                Coordinate(
+                    it.pointsGeometry?.coordinates?.get(0),
+                    it.pointsGeometry?.coordinates?.get(1),
+                    it.pointsGeometry?.coordinates?.get(2)
+                )
+            )
+        }
+        linesCoordinate.forEach {
+            Log.d("TagCheckLines", it.toString())
+        }
+        pointsCoordinate.forEach {
+            Log.d("TagCheckPoints", it.toString())
+        }
     }
 
     private fun getData() {
@@ -69,25 +155,30 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
             .getClient
             .getPoint()
             .enqueue(object : Callback<MainJsonObject> {
-            override fun onResponse(
-                call: Call<MainJsonObject>?,
-                response: Response<MainJsonObject>?
-            ) {
-                if(response?.isSuccessful == true) {
-                    response.body()?.let {
-                        mainJsonObject = it
+                override fun onResponse(
+                    call: Call<MainJsonObject>?,
+                    response: Response<MainJsonObject>?
+                ) {
+                    if (response?.isSuccessful == true) {
+                        response.body()?.let {
+                            mainJsonObject = it
+                            mapping()
+                            updateGoogleMap()
+                        }
                     }
+                    Log.d("TAG", mainJsonObject.toString())
                 }
-                Log.d("TAG", mainJsonObject.toString())
 
-            }
+                override fun onFailure(call: Call<MainJsonObject>?, t: Throwable?) {
+                    Log.e("TAG", t.toString())
+                    Toast.makeText(
+                        this@MainActivity,
+                        "Нет подключения к интернету ",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
 
-            override fun onFailure(call: Call<MainJsonObject>?, t: Throwable?) {
-                Log.e("TAG", t.toString())
-                Toast.makeText(this@MainActivity, "Нет подключения к интернету ", Toast.LENGTH_LONG).show()
-            }
-
-        })
+            })
     }
 
     @SuppressLint("MissingPermission")
@@ -125,21 +216,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
-        this.map = googleMap
+        map = googleMap
 
-        val polyline1 = googleMap.addPolyline(
-            PolylineOptions()
-                .clickable(true)
-                .add(
-                    LatLng(-35.016, 143.321),
-                    LatLng(-34.747, 145.592),
-                    LatLng(-34.364, 147.891),
-                    LatLng(-33.501, 150.217),
-                    LatLng(-32.306, 149.248),
-                    LatLng(-32.491, 147.309)
-                )
-        )
-        polyline1.tag = "A"
         googleMap.moveCamera(
             CameraUpdateFactory
                 .newLatLngZoom(LatLng(-23.684, 133.903), 4f)
@@ -158,6 +236,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
 
         googleMap.setOnPolylineClickListener(this)
         googleMap.setOnPolygonClickListener(this)
+
+        getData()
     }
 
     override fun onPolylineClick(polyline: Polyline) {
@@ -184,72 +264,56 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         }
     }
 
-    @SuppressLint("MissingPermission")
-    private fun showCurrentPlace() {
-        if (map == null) {
-            return
-        }
-        if (locationPermissionGranted) {
-            // Use fields to define the data types to return.
-            val placeFields = listOf(Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
-
-            // Use the builder to create a FindCurrentPlaceRequest.
-            val request = FindCurrentPlaceRequest.newInstance(placeFields)
-
-            // Get the likely places - that is, the businesses and other points of interest that
-            // are the best match for the device's current location.
-            val placeResult = placesClient.findCurrentPlace(request)
-            placeResult.addOnCompleteListener { task ->
-                if (task.isSuccessful && task.result != null) {
-                    val likelyPlaces = task.result
-
-                    // Set the count, handling cases where less than 5 entries are returned.
-                    val count =
-                        if (likelyPlaces != null && likelyPlaces.placeLikelihoods.size < M_MAX_ENTRIES) {
-                            likelyPlaces.placeLikelihoods.size
-                        } else {
-                            M_MAX_ENTRIES
-                        }
-                    var i = 0
-                    likelyPlaceNames = arrayOfNulls(count)
-                    likelyPlaceAddresses = arrayOfNulls(count)
-                    likelyPlaceAttributions = arrayOfNulls<List<*>?>(count)
-                    likelyPlaceLatLngs = arrayOfNulls(count)
-                    for (placeLikelihood in likelyPlaces?.placeLikelihoods ?: emptyList()) {
-                        // Build a list of likely places to show the user.
-                        likelyPlaceNames[i] = placeLikelihood.place.name
-                        likelyPlaceAddresses[i] = placeLikelihood.place.address
-                        likelyPlaceAttributions[i] = placeLikelihood.place.attributions
-                        likelyPlaceLatLngs[i] = placeLikelihood.place.latLng
-                        i++
-                        if (i > count - 1) {
-                            break
-                        }
-                    }
-
-                    // Show a dialog offering the user the list of likely places, and add a
-                    // marker at the selected place.
-                    openPlacesDialog()
-                } else {
-                    Log.e(TAG, "Exception: %s", task.exception)
-                }
-            }
-        } else {
-            // The user has not granted permission.
-            Log.i(TAG, "The user did not grant location permission.")
-
-            // Add a default marker, because the user hasn't selected a place.
-            map?.addMarker(
-                MarkerOptions()
-                    .title(getString(R.string.default_info_title))
-                    .position(defaultLocation)
-                    .snippet(getString(R.string.default_info_snippet))
-            )
-
-            // Prompt the user for permission.
-            getLocationPermission()
-        }
-    }
+//    @SuppressLint("MissingPermission")
+//    private fun showCurrentPlace() {
+//        if (map == null) {
+//            return
+//        }
+//        if (locationPermissionGranted) {
+//            val placeFields = listOf(Place.Field.NAME, Place.Field.ADDRESS, Place.Field.LAT_LNG)
+//            val request = FindCurrentPlaceRequest.newInstance(placeFields)
+//            val placeResult = placesClient.findCurrentPlace(request)
+//            placeResult.addOnCompleteListener { task ->
+//                if (task.isSuccessful && task.result != null) {
+//                    val likelyPlaces = task.result
+//                    val count =
+//                        if (likelyPlaces != null && likelyPlaces.placeLikelihoods.size < M_MAX_ENTRIES) {
+//                            likelyPlaces.placeLikelihoods.size
+//                        } else {
+//                            M_MAX_ENTRIES
+//                        }
+//                    var i = 0
+//                    likelyPlaceNames = arrayOfNulls(count)
+//                    likelyPlaceAddresses = arrayOfNulls(count)
+//                    likelyPlaceAttributions = arrayOfNulls<List<*>?>(count)
+//                    likelyPlaceLatLngs = arrayOfNulls(count)
+//                    for (placeLikelihood in likelyPlaces?.placeLikelihoods ?: emptyList()) {
+//                        likelyPlaceNames[i] = placeLikelihood.place.name
+//                        likelyPlaceAddresses[i] = placeLikelihood.place.address
+//                        likelyPlaceAttributions[i] = placeLikelihood.place.attributions
+//                        likelyPlaceLatLngs[i] = placeLikelihood.place.latLng
+//                        i++
+//                        if (i > count - 1) {
+//                            break
+//                        }
+//                    }
+//
+//                    openPlacesDialog()
+//                } else {
+//                    Log.e(TAG, "Exception: %s", task.exception)
+//                }
+//            }
+//        } else {
+//            Log.i(TAG, "The user did not grant location permission.")
+//            map?.addMarker(
+//                MarkerOptions()
+//                    .title(getString(R.string.default_info_title))
+//                    .position(defaultLocation)
+//                    .snippet(getString(R.string.default_info_snippet))
+//            )
+//            getLocationPermission()
+//        }
+//    }
 
     override fun onSaveInstanceState(outState: Bundle) {
         map?.let { map ->
@@ -261,9 +325,8 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
 
 
     private fun openPlacesDialog() {
-        // Ask the user to choose the place where they are now.
         val listener =
-            DialogInterface.OnClickListener { dialog, which -> // The "which" argument contains the position of the selected item.
+            DialogInterface.OnClickListener { dialog, which ->
                 val markerLatLng = likelyPlaceLatLngs[which]
                 var markerSnippet = likelyPlaceAddresses[which]
                 if (likelyPlaceAttributions[which] != null) {
@@ -277,8 +340,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                     return@OnClickListener
                 }
 
-                // Add a marker for the selected place, with an info window
-                // showing information about that place.
                 map?.addMarker(
                     MarkerOptions()
                         .title(likelyPlaceNames[which])
@@ -286,7 +347,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                         .snippet(markerSnippet)
                 )
 
-                // Position the map's camera at the location of the marker.
                 map?.moveCamera(
                     CameraUpdateFactory.newLatLngZoom(
                         markerLatLng,
@@ -295,7 +355,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                 )
             }
 
-        // Display the dialog.
         AlertDialog.Builder(this)
             .setTitle(R.string.pick_place)
             .setItems(likelyPlaceNames, listener)
@@ -312,7 +371,6 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         when (requestCode) {
             PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION -> {
 
-                // If request is cancelled, the result arrays are empty.
                 if (grantResults.isNotEmpty() &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
@@ -348,13 +406,9 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         private const val DEFAULT_ZOOM = 15
         private const val PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1
 
-        // Keys for storing activity state.
-        // [START maps_current_place_state_keys]
         private const val KEY_CAMERA_POSITION = "camera_position"
         private const val KEY_LOCATION = "location"
-        // [END maps_current_place_state_keys]
 
-        // Used for selecting the current place.
         private const val M_MAX_ENTRIES = 5
     }
 }
