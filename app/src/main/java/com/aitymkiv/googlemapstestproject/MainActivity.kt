@@ -12,11 +12,11 @@ import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.aitymkiv.googlemapstestproject.model.ApiClient
 import com.aitymkiv.googlemapstestproject.model.Coordinate
+import com.aitymkiv.googlemapstestproject.model.LineCoordinate
 import com.aitymkiv.googlemapstestproject.model.MainJsonObject
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -47,7 +47,7 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
 
     private var mainJsonObject: MainJsonObject? = null
 
-    private var linesCoordinate: ArrayList<Coordinate> = arrayListOf()
+    private var linesCoordinate: ArrayList<LineCoordinate> = arrayListOf()
     private var pointsCoordinate: ArrayList<Coordinate> = arrayListOf()
 
     private lateinit var button: Button
@@ -78,23 +78,36 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
     }
 
     private fun updateGoogleMap() {
-        var polyline = map?.let { map1 ->
-            map1.clear()
-            map1.addPolyline(
-                PolylineOptions().addAll(
-                    linesCoordinate.map { item ->
+        map?.clear()
+//        var polyline = map?.let { map1 ->
+//            map1.clear()
+//            map1.addPolyline(
+//                PolylineOptions().addAll(
+//                    linesCoordinate.map { item ->
+//                        item.lat?.let { lat ->
+//                            item.lon?.let { lon ->
+//                                LatLng(lat, lon)
+//                            }
+//                        }
+//                    }
+//                )
+//            )
+
+        linesCoordinate.forEach {
+            Log.d("Check", "NEW LINE" )
+            map?.let { map1 ->
+                map1.addPolyline(
+                    PolylineOptions().addAll(it.coordinates.map { item ->
                         item.lat?.let { lat ->
                             item.lon?.let { lon ->
                                 LatLng(lat, lon)
                             }
                         }
-                    }
+                    })
                 )
-            )
+            }
         }
-        if (polyline != null) {
-            stylePolyline(polyline)
-        }
+
 
         pointsCoordinate.forEach {
             it.lat?.let { it1 -> it.lon?.let { it2 -> LatLng(it1, it2) } }?.let { it2 ->
@@ -109,6 +122,17 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
                 )
             }
         }
+
+        linesCoordinate.forEach {
+            it.coordinates.forEach{
+                var polyline = map?.addPolyline(PolylineOptions().add(
+                    LatLng(it.lat!!, it.lon!!)
+                ))
+                if (polyline != null) {
+                    stylePolyline(polyline)
+                }
+            }
+        }
     }
 
     private fun mapping() {
@@ -118,11 +142,14 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback, GoogleMap.OnPolyli
         val lines = mainJsonObject?.lines
         val points = mainJsonObject?.points
         lines?.forEach {
-
-            it.pointsGeometry?.coordinates?.forEach {
-                linesCoordinate.add(Coordinate(it.get(0), it.get(1), it.get(2)))
+            var coord: ArrayList<Coordinate> = arrayListOf()
+            it.pointsGeometry?.coordinates?.forEach{
+                coord.add(Coordinate(it.get(0), it.get(1), it.get(2)))
             }
+            linesCoordinate.add(LineCoordinate(coord))
+            Log.d("dede", it.pointsGeometry?.coordinates.toString())
         }
+        Log.d("dede", linesCoordinate.toString())
         points?.forEach {
             pointsCoordinate.add(
                 Coordinate(
